@@ -158,7 +158,8 @@ export function calculateRenderInfo(table: BaseTable): RenderInfo {
     columns: columnsProp,
     dataSource: dataSourceProp,
     defaultColumnWidth,
-    leftTopCellId
+    leftTopCellId,
+    isMergeLeafNodes
   } = table.props
 
   const columns = processColumns(columnsProp, defaultColumnWidth)
@@ -261,5 +262,6 @@ export function calculateRenderInfo(table: BaseTable): RenderInfo {
     rightLockTotalWidth,
     hasLockColumn: nested.left.length > 0 || nested.right.length > 0,
     leftTopCellId,
+    isMergeLeafNodes: isMergeLeafNodes === false ? false : true
   }
 }

@@ -31,6 +31,9 @@ export interface ArtColumnStaticPart {
 
   /** 功能开关 */
   features?: { [key: string]: any }
+
+  /** 列的类型 */
+  columnType?: String
 }
 
 export interface ArtColumnDynamicPart {

@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import React, { CSSProperties } from 'react'
-import { ArtColumn } from '../interfaces'
+import { AbstractTreeNode, ArtColumn } from '../interfaces'
 import { getTreeDepth, isLeafNode } from '../utils'
 import { HorizontalRenderRange, RenderInfo } from './interfaces'
 import { Classes } from './styles'
@@ -22,6 +22,7 @@ type ColWithRenderInfo =
     isLeaf: boolean
     width: number
     leftTopCellId?: string
+    isLeafParent?: boolean
   }
   | { type: 'blank'; blankSide: 'left' | 'right'; width: number, colSpan?: number, leftTopCellId?: string }
 
@@ -61,7 +62,7 @@ function filterNestedCenter(centerNested: ArtColumn[], hoz: HorizontalRenderRang
 }
 
 /** 根据输入的 nested 列配置，算出相应的 leveled & flat 配置方便渲染 */
-function calculateLeveledAndFlat(inputNested: IndexedCol[], rowCount: number) {
+function calculateLeveledAndFlat(inputNested: IndexedCol[], rowCount: number, isMergeLeafNodes = true) {
   const leveled: ColWithRenderInfo[][] = []
   for (let depth = 0; depth < rowCount; depth++) {
     leveled.push([])
@@ -71,6 +72,11 @@ function calculateLeveledAndFlat(inputNested: IndexedCol[], rowCount: number) {
   dfs(inputNested, 0)
 
   return { flat, leveled }
+
+  /** 判断是否是叶子结点的父节点 */
+  function isLeafParentNode(node: AbstractTreeNode) {
+    return node.children && node.children.length > 0 && (!node.children[0].children || node.children[0].children.length === 0)
+  }
 
   function dfs(input: IndexedCol[], depth: number) {
     let leafCount = 0
@@ -87,7 +93,11 @@ function calculateLeveledAndFlat(inputNested: IndexedCol[], rowCount: number) {
           colSpan: 1,
           isLeaf: true,
         }
-        leveled[depth].push(wrapped)
+        // 叶子节点放到列表头的最后一行
+        if (isMergeLeafNodes === false && indexedCol.col.columnType !== 'left')
+          leveled[leveled.length - 1].push(wrapped)
+        else
+          leveled[depth].push(wrapped)
         flat.push(wrapped)
       } else {
         const dfsRes = dfs(indexedCol.children, depth + 1)
@@ -100,6 +110,7 @@ function calculateLeveledAndFlat(inputNested: IndexedCol[], rowCount: number) {
             colIndex: indexedCol.colIndex,
             colSpan: dfsRes.leafCount,
             isLeaf: false,
+            isLeafParent: isLeafParentNode(indexedCol)
           })
         }
       }
@@ -138,13 +149,14 @@ function attachColIndex(inputNested: ArtColumn[], colIndexOffset: number) {
 
 /** 计算用于渲染表头的数据结构 */
 function calculateHeaderRenderInfo(
-  { flat, nested, horizontalRenderRange: hoz, useVirtual }: RenderInfo,
+  { flat, nested, horizontalRenderRange: hoz, useVirtual, isMergeLeafNodes = true }: RenderInfo,
   rowCount: number,
 ): { flat: ColWithRenderInfo[]; leveled: ColWithRenderInfo[][] } {
   if (useVirtual.header) {
     const leftPart = calculateLeveledAndFlat(attachColIndex(nested.left, 0), rowCount)
     const filtered = filterNestedCenter(nested.center, hoz, flat.left.length)
-    const centerPart = calculateLeveledAndFlat(filtered, rowCount)
+    // 开启虚拟化
+    const centerPart = calculateLeveledAndFlat(filtered, rowCount, isMergeLeafNodes)
     const rightPart = calculateLeveledAndFlat(
       attachColIndex(nested.right, flat.left.length + flat.center.length),
       rowCount,
@@ -168,11 +180,11 @@ function calculateHeaderRenderInfo(
     }
   }
 
-  return calculateLeveledAndFlat(attachColIndex(nested.full, 0), rowCount)
+  return calculateLeveledAndFlat(attachColIndex(nested.full, 0), rowCount, isMergeLeafNodes)
 }
 
 export default function TableHeader({ info }: { info: RenderInfo }) {
-  const { nested, flat, stickyLeftMap, stickyRightMap, leftTopCellId } = info
+  const { nested, flat, stickyLeftMap, stickyRightMap, leftTopCellId, isMergeLeafNodes } = info
   const rowCount = getTreeDepth(nested.full) + 1
   const headerRenderInfo = calculateHeaderRenderInfo(info, rowCount)
   /** 合并左上方空白单元格
@@ -192,7 +204,7 @@ export default function TableHeader({ info }: { info: RenderInfo }) {
   const thead = headerRenderInfo.leveled.map((wrappedCols, level) => {
     const headerCells = wrappedCols.map((wrapped) => {
       if (wrapped.type === 'normal') {
-        const { colIndex, colSpan, isLeaf, col } = wrapped
+        const { colIndex, colSpan, isLeaf, col, isLeafParent } = wrapped
 
         const headerCellProps = col.headerCellProps ?? {}
 
@@ -204,6 +216,15 @@ export default function TableHeader({ info }: { info: RenderInfo }) {
           positionStyle.position = 'sticky'
           positionStyle.right = stickyRightMap.get(colIndex + colSpan - 1)
         }
+
+        let rowSpan: number
+        if (isLeaf) {
+          if (isMergeLeafNodes === false && wrapped.col.columnType !== 'left')
+            rowSpan = 1
+          else
+            rowSpan = rowCount - level
+        } else if (isLeafParent && isMergeLeafNodes === false)
+          rowSpan = rowCount - level - 1
 
         return (
           <th
@@ -217,7 +238,8 @@ export default function TableHeader({ info }: { info: RenderInfo }) {
               'lock-right': colIndex >= fullFlatCount - rightFlatCount,
             })}
             colSpan={colSpan}
-            rowSpan={isLeaf ? rowCount - level : undefined}
+            rowSpan={rowSpan}
+            // rowSpan={isLeaf ? rowCount - level : undefined}
             style={{
               textAlign: col.align,
               ...headerCellProps.style,

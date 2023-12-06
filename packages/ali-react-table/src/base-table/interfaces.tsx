@@ -47,4 +47,6 @@ export interface RenderInfo {
   rightLockTotalWidth: number
   /** 是否合并左上角空白单元格 */
   leftTopCellId?: string
+  /** 多层表头矩阵是否合并叶子节点 */
+  isMergeLeafNodes?: boolean
 }

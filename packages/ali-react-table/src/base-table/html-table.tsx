@@ -14,7 +14,7 @@ export interface HtmlTableProps extends Required<Pick<BaseTableProps, 'getRowPro
 
   horizontalRenderInfo: Pick<
     RenderInfo,
-    'flat' | 'visible' | 'horizontalRenderRange' | 'stickyLeftMap' | 'stickyRightMap'
+    'flat' | 'visible' | 'horizontalRenderRange' | 'stickyLeftMap' | 'stickyRightMap' | 'isMergeLeafNodes'
   >
 
   verticalRenderInfo: {
@@ -34,7 +34,7 @@ export function HtmlTable({
   horizontalRenderInfo: hozInfo,
   components: { Row, Cell, TableBody },
 }: HtmlTableProps) {
-  const { flat, horizontalRenderRange: hoz } = hozInfo
+  const { flat, horizontalRenderRange: hoz, isMergeLeafNodes } = hozInfo
 
   const spanManager = new SpanManager()
   const fullFlatCount = flat.full.length
@@ -123,6 +123,22 @@ export function HtmlTable({
     rowSpan = Math.min(rowSpan, verInfo.limit - rowIndex)
     colSpan = Math.min(colSpan, leftFlatCount + hoz.rightIndex - colIndex)
 
+    const getColSpan = () => {
+      if (isMergeLeafNodes) return colSpan
+      if (column.getSpanRect && isMergeLeafNodes === false) {
+        let temp
+        // 行表头的最后一列
+        if (colIndex === row.nodes.length - 1) temp = 1
+        // 行表头的倒数第二列
+        else if (colIndex === row.nodes.length - 2) {
+          const tempSpanRect = row.rects[colIndex + 1]
+          temp = tempSpanRect == null ? 1 : tempSpanRect.right - colIndex - 1
+        }
+        return temp ?? colSpan
+      }
+      return colSpan
+    }
+
     const hasSpan = colSpan > 1 || rowSpan > 1
     if (hasSpan) {
       spanManager.add(rowIndex, colIndex, colSpan, rowSpan)
@@ -146,7 +162,8 @@ export function HtmlTable({
         'lock-left': colIndex < leftFlatCount,
         'lock-right': colIndex >= fullFlatCount - rightFlatCount,
       }),
-      ...(hasSpan ? { colSpan, rowSpan } : null),
+      // ...(hasSpan ? { colSpan, rowSpan } : null),
+      ...{ colSpan: getColSpan(), rowSpan },
       style: {
         textAlign: column.align,
         ...cellProps.style,

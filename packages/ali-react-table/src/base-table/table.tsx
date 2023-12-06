@@ -119,6 +119,9 @@ export interface BaseTableProps {
   /** 合并左上角空白单元格的唯一id */
   leftTopCellId: string
 
+  /** 多层表头矩阵是否合并叶子节点 */
+  isMergeLeafNodes: boolean
+
   getRowProps?(row: any, rowIndex: number): React.HTMLAttributes<HTMLTableRowElement>
 }
 
