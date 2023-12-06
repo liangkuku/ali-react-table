@@ -45,4 +45,6 @@ export interface RenderInfo {
   leftLockTotalWidth: number
   /** 右侧锁定列的总宽度 */
   rightLockTotalWidth: number
+  /** 是否合并左上角空白单元格 */
+  leftTopCellId?: string
 }

@@ -14,15 +14,16 @@ function range(n: number) {
 }
 
 type ColWithRenderInfo =
-  | {
-      type: 'normal'
-      colIndex: number
-      col: ArtColumn
-      colSpan: number
-      isLeaf: boolean
-      width: number
-    }
-  | { type: 'blank'; blankSide: 'left' | 'right'; width: number }
+  {
+    type: 'normal'
+    colIndex: number
+    col: ArtColumn
+    colSpan: number
+    isLeaf: boolean
+    width: number
+    leftTopCellId?: string
+  }
+  | { type: 'blank'; blankSide: 'left' | 'right'; width: number, colSpan?: number, leftTopCellId?: string }
 
 type IndexedCol = {
   colIndex: number
@@ -171,10 +172,19 @@ function calculateHeaderRenderInfo(
 }
 
 export default function TableHeader({ info }: { info: RenderInfo }) {
-  const { nested, flat, stickyLeftMap, stickyRightMap } = info
+  const { nested, flat, stickyLeftMap, stickyRightMap, leftTopCellId } = info
   const rowCount = getTreeDepth(nested.full) + 1
   const headerRenderInfo = calculateHeaderRenderInfo(info, rowCount)
-
+  /** 合并左上方空白单元格
+   *  start
+   */
+  if (leftTopCellId && headerRenderInfo.leveled && headerRenderInfo.leveled[0]) {
+    const leftTopEmptyCellNumber = nested.left.length
+    headerRenderInfo.leveled[0][0].colSpan = leftTopEmptyCellNumber
+    headerRenderInfo.leveled[0][0].leftTopCellId = leftTopCellId
+    headerRenderInfo.leveled[0].splice(1, leftTopEmptyCellNumber - 1)
+  }
+  /** end */
   const fullFlatCount = flat.full.length
   const leftFlatCount = flat.left.length
   const rightFlatCount = flat.right.length
@@ -197,6 +207,7 @@ export default function TableHeader({ info }: { info: RenderInfo }) {
 
         return (
           <th
+            id={leftTopCellId && leftTopCellId}
             key={colIndex}
             {...headerCellProps}
             className={cx(Classes.tableHeaderCell, headerCellProps.className, {

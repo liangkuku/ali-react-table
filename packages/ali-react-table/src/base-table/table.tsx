@@ -116,6 +116,9 @@ export interface BaseTableProps {
   /** 虚拟滚动调试标签，用于表格内部调试使用 */
   virtualDebugLabel?: string
 
+  /** 合并左上角空白单元格的唯一id */
+  leftTopCellId: string
+
   getRowProps?(row: any, rowIndex: number): React.HTMLAttributes<HTMLTableRowElement>
 }
 
