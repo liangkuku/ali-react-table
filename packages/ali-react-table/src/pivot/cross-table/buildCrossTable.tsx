@@ -71,7 +71,7 @@ export default function buildCrossTable(
         const metaCol = leftMetaColumns[index] ?? ({} as CrossTableLeftMetaColumn)
         const { getCellProps, render, ...staticMetaColConfig } = metaCol
         leftPartColumns.push({
-          columnType: 'left',
+          columnType: 'left' as any,
           lock: true,
           ...staticMetaColConfig,
           getCellProps: leftHeaderGetCellPropsFactory(metaCol, index),
@@ -153,7 +153,7 @@ export default function buildCrossTable(
             const { key, value, children, ...others } = node
             // 强制展开的节点
             result.push({
-              columnType: 'data-parent',
+              columnType: 'data-parent' as any,
               ...others,
               name: value,
               children: dfs(children, { valuePath: ctx.valuePath, depth: ctx.depth + 1 }),
@@ -175,7 +175,7 @@ export default function buildCrossTable(
       }
       const { key, value, children, ...others } = topNode
       return {
-        columnType: 'data',
+        columnType: 'data' as any,
         ...others,
         getValue: columnGetValue,
         name: value,

@@ -122,13 +122,16 @@ export function HtmlTable({
     // rowSpan/colSpan 不能过大，避免 rowSpan/colSpan 影响因虚拟滚动而未渲染的单元格
     rowSpan = Math.min(rowSpan, verInfo.limit - rowIndex)
     colSpan = Math.min(colSpan, leftFlatCount + hoz.rightIndex - colIndex)
+    /** 当前行行表头的最后一列 */
+    const isLeftPartLastColForRow = (colIndex: number) => {
+      return colIndex === row.nodes.length - 1
+    }
 
     const getColSpan = () => {
       if (isMergeLeafNodes) return colSpan
       if (column.getSpanRect && isMergeLeafNodes === false) {
         let temp
-        // 行表头的最后一列
-        if (colIndex === row.nodes.length - 1) temp = 1
+        if (isLeftPartLastColForRow(colIndex)) temp = 1
         // 行表头的倒数第二列
         else if (colIndex === row.nodes.length - 2) {
           const tempSpanRect = row.rects[colIndex + 1]
@@ -148,7 +151,10 @@ export function HtmlTable({
 
     if (colIndex < leftFlatCount) {
       positionStyle.position = 'sticky'
-      positionStyle.left = hozInfo.stickyLeftMap.get(colIndex)
+      if (isLeftPartLastColForRow(colIndex) && isMergeLeafNodes === false)
+        positionStyle.left = hozInfo.stickyLeftMap.get(leftFlatCount - 1)
+      else
+        positionStyle.left = hozInfo.stickyLeftMap.get(colIndex)
     } else if (colIndex >= fullFlatCount - rightFlatCount) {
       positionStyle.position = 'sticky'
       positionStyle.right = hozInfo.stickyRightMap.get(colIndex)
