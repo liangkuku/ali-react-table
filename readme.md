@@ -1,6 +1,6 @@
 # ali-react-table
 
-## 开发者平时工作实在太忙了，近期项目无法进行积极维护，抱歉。
+## 开发者平时工作实在太忙了，近期项目无法进行积极维护，所以作为个人维护者我将根据使用维护这个项目。
 
 [![NPM Package](https://img.shields.io/npm/v/ali-react-table?style=flat-square)](https://www.npmjs.org/package/ali-react-table)
 
