@@ -38,6 +38,9 @@ export interface TreeModeFeatureOptions {
 
   /** 指定表格每一行元信息的记录字段 */
   treeMetaKey?: string | symbol
+
+  /** 指定展开列的code */
+  expandableColumnCode?: string
 }
 
 export function treeMode(opts: TreeModeFeatureOptions = {}) {
@@ -110,10 +113,25 @@ export function treeMode(opts: TreeModeFeatureOptions = {}) {
       if (columns.length === 0) {
         return columns
       }
-      const [firstCol, ...others] = columns
+
+      // 默认第一列支持展开折叠
+      let expandableColIndex = 0
+      let beforeCols: ArtColumn[] = []
+      let afterCols = columns.slice(1)
+      // 自定义列展开折叠
+      if (opts.expandableColumnCode) {
+        const index = columns.findIndex(c => c.code === opts.expandableColumnCode)
+        expandableColIndex = index > 0 ? index : 0
+        if (expandableColIndex > 0) {
+          beforeCols = columns.slice(0, expandableColIndex)
+          afterCols = columns.slice(expandableColIndex + 1)
+        }
+      }
+
+      const expandableCol = columns[expandableColIndex]
 
       const render = (value: any, record: any, recordIndex: number) => {
-        const content = internals.safeRender(firstCol, record, recordIndex)
+        const content = internals.safeRender(expandableCol, record, recordIndex)
         if (record[treeMetaKey] == null) {
           // 没有 treeMeta 信息的话，就返回原先的渲染结果
           return content
@@ -162,7 +180,7 @@ export function treeMode(opts: TreeModeFeatureOptions = {}) {
       }
 
       const getCellProps = (value: any, record: any, rowIndex: number) => {
-        const prevProps = internals.safeGetCellProps(firstCol, record, rowIndex)
+        const prevProps = internals.safeGetCellProps(expandableCol, record, rowIndex)
         if (record[treeMetaKey] == null) {
           // 没有 treeMeta 信息的话，就返回原先的 cellProps
           return prevProps
@@ -185,15 +203,16 @@ export function treeMode(opts: TreeModeFeatureOptions = {}) {
       }
 
       return [
+        ...beforeCols,
         {
-          ...firstCol,
+          ...expandableCol,
           title: (
-            <span style={{ marginLeft: iconIndent + iconWidth + iconGap }}>{internals.safeRenderHeader(firstCol)}</span>
+            <span style={{ marginLeft: iconIndent + iconWidth + iconGap }}>{internals.safeRenderHeader(expandableCol)}</span>
           ),
           render,
-          getCellProps: clickArea === 'cell' ? getCellProps : firstCol.getCellProps,
+          getCellProps: clickArea === 'cell' ? getCellProps : expandableCol.getCellProps,
         },
-        ...others,
+        ...afterCols,
       ]
     }
   }

@@ -124,7 +124,7 @@ export function HtmlTable({
     colSpan = Math.min(colSpan, leftFlatCount + hoz.rightIndex - colIndex)
     /** 当前行行表头的最后一列 */
     const isLeftPartLastColForRow = (colIndex: number) => {
-      return colIndex === row.nodes.length - 1
+      return colIndex === row.nodes?.length - 1
     }
 
     const getColSpan = () => {
